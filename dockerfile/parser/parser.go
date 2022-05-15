@@ -12,7 +12,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/docker/docker/pkg/system"
 	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/pkg/errors"
 )
@@ -119,9 +118,6 @@ func (d *Directive) setEscapeToken(s string) error {
 func (d *Directive) setPlatformToken(s string) error {
 	s = strings.ToLower(s)
 	valid := []string{runtime.GOOS}
-	if system.LCOWSupported() {
-		valid = append(valid, "linux")
-	}
 	for _, item := range valid {
 		if s == item {
 			d.platformToken = s
@@ -148,23 +144,6 @@ func (d *Directive) possibleParserDirective(line string) error {
 				}
 				d.escapeSeen = true
 				return d.setEscapeToken(tecMatch[i])
-			}
-		}
-	}
-
-	// TODO @jhowardmsft LCOW Support: Eventually this check can be removed,
-	// but only recognise a platform token if running in LCOW mode.
-	if system.LCOWSupported() {
-		tpcMatch := tokenPlatformCommand.FindStringSubmatch(strings.ToLower(line))
-		if len(tpcMatch) != 0 {
-			for i, n := range tokenPlatformCommand.SubexpNames() {
-				if n == "platform" {
-					if d.platformSeen == true {
-						return errors.New("only one platform parser directive can be used")
-					}
-					d.platformSeen = true
-					return d.setPlatformToken(tpcMatch[i])
-				}
 			}
 		}
 	}
